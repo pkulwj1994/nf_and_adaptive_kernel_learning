@@ -21,6 +21,7 @@ from torch.optim import Adam
 
 import seaborn as sns
 import time
+import gc
 
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -129,7 +130,7 @@ def calc_ism_loss(x):
 	# D = compute_batch_D(x)
 	imp_mat_diff = compute_implicit_score_diff(x)
 
-	return (imp_mat_diff).sum()/x.shape[0]
+	return (imp_mat_diff*torch.eye(2).to(device)).sum()/x.shape[0]
 
 # def calc_idsm_loss_old(x):
 
@@ -272,9 +273,11 @@ def banana_score_plot(epoch=0):
 
 
 def energy_net(input_dim):
-	return MLP(int(input_dim), 1,hidden_units=[512,256,128],
+	return MLP(int(input_dim), 1,hidden_units=[512,512,256,256,128,128,64,64],
                                 activation='elu',
                                 in_lambda=None)
+
+
 
 
 flow_model = make_flow()
@@ -330,6 +333,10 @@ for tryy in range(1):
 			ll += calc_idsm_loss(x).detach().cpu().item()
 			lll += calc_true_idsm_loss(x).detach().cpu().item()			
 
+			# l += 0
+			# ll += 0
+			# lll += 0		
+
 			optimizer.zero_grad()
 
 			loss = calc_ism_loss(x)
@@ -338,6 +345,8 @@ for tryy in range(1):
 
 			optimizer.step()
 			optimizer.zero_grad()
+
+			# l += loss.detach()
 
 			print('ism Epoch: {}/{}, Iter: {}/{}, AvgLoss: {:.3f}'.format(epoch+1,20,i+1,len(train_loader),l/(i+1)),end='\r')
 		ism_loss.append(l/(i+1))
@@ -360,6 +369,10 @@ for tryy in range(1):
 				l += calc_ism_loss(x).detach().cpu().item()
 				ll += calc_idsm_loss(x).detach().cpu().item()
 				lll+= calc_true_idsm_loss(x).detach().cpu().item()
+
+				# l += calc_ism_loss(x).detach().cpu().item()
+				# ll += 0
+				# lll+= 0
 			ism_eval_loss.append(l/(i+1))
 			idsm_eval_loss.append(ll/(i+1))
 			tidsm_eval_loss.append(lll/(i+1))
@@ -369,6 +382,20 @@ for tryy in range(1):
 				writer.add_scalar("tidsm_eval_loss_{}".format(TRAIN_NAME), lll/(i+1), epoch)
 			banana_energy_plot(epoch)
 			banana_score_plot(epoch)
+
+		if epoch %100 == 0:
+			energy_samples = e_model_hmc_sample(1000).detach().cpu()
+			fig = plt.figure()
+			plt.scatter(energy_samples[:,0],energy_samples[:,1],s=1,label='energy model')
+			plt.legend()
+			scatter_fig = fig.get_figure()
+			scatter_fig.savefig(os.path.join(asset_dir,'./banana_data_flow_and_energy_train_{}_try_{}_epoch_{}.png'.format(TRAIN_NAME,tryy,epoch)), dpi = 400)
+			plt.close()
+
+			del energy_samples
+			gc.collect()
+
+
 
 	torch.save(e_model.state_dict(),os.path.join(asset_dir,'{}_banana_energy_model_try_{}_epoch_{}.pth'.format(TRAIN_NAME,tryy,epoch)))
 
@@ -397,7 +424,7 @@ for tryy in range(1):
 
 
 
-
+torch.cuda.empty_cache()
 
 
 

@@ -152,6 +152,14 @@ def calc_flow_score(x):
 	grad1 = grad(logp, x, create_graph=True)[0]
 	return grad1
 
+def calc_energy_score(x):
+	x = x.to(device)
+	x.requires_grad_(True)
+	logp = e_model.log_prob(x).sum()
+	grad1 = grad(logp, x, create_graph=True)[0]
+	return grad1
+
+
 def calc_true_score(x):
 	grad1 = torch.stack([-0.5*torch_e()*x[:,0]**3 + torch_e()**2*x[:,1]*x[:,0] + (torch_e()**2 - 1)*x[:,0],
 		-torch_e()**2*x[:,1] + 0.5*torch_e()**2*x[:,0]**2 - torch_e()**2],-1)
@@ -243,14 +251,32 @@ def banana_score_plot(epoch=0):
 
 
 def energy_net(input_dim):
-	return MLP(int(input_dim), 1,hidden_units=[512,256,128],
+	return MLP(int(input_dim), 1,hidden_units=[512,512,256,256,128,128,64,64],
                                 activation='elu',
                                 in_lambda=None)
 
 
-flow_model = make_flow()
-flow_model.load_state_dict(torch.load(os.path.join(asset_dir,'pretrained_banana_flow.pth')))
-# flow_model.eval()
 
-DataSets = Crescent(train_samples=10000, test_samples=5000)
-train_loader, test_loader = DataSets.get_data_loaders(128)
+
+
+from os import mkdir
+from torch.utils import tensorboard
+tb_dir = os.path.join('./', "tensorboard")
+asset_dir = os.path.join('./','assets')
+if os.path.exists(tb_dir):
+	pass
+else:
+	mkdir(tb_dir)
+
+if os.path.exists(asset_dir):
+	pass
+else:
+	mkdir(asset_dir)
+
+
+
+
+
+
+
+
