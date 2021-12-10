@@ -334,11 +334,15 @@ from torch.utils.data import Dataset
 
 
 class PlaneDataset(Dataset):
-	def __init__(self, num_points, flip_axes=False):
+	def __init__(self, num_points, flip_axes=False,data_path=None):
 		self.num_points = num_points
 		self.flip_axes = flip_axes
 		self.data = None
-		self.reset()
+
+		if data_path is not None:
+			self.data = torch.load(data_path)
+		else:
+			self.reset()
 
 	def __getitem__(self, item):
 		return self.data[item]
@@ -555,10 +559,10 @@ class Gaussian():
 
 class Crescent():
 
-	def __init__(self,train_samples=100,test_samples=100):
+	def __init__(self,train_samples=100,test_samples=100,train_data_path=None, test_data_path=None):
 
-		self.train = CrescentDataset(num_points=train_samples)
-		self.test = CrescentDataset(num_points=test_samples)
+		self.train = CrescentDataset(num_points=train_samples,flip_axes=False,data_path=train_data_path)
+		self.test = CrescentDataset(num_points=test_samples,flip_axes=False,data_path=test_data_path)
 		self.splits = ['train','test']
 
 	@property
