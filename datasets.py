@@ -368,6 +368,21 @@ class GaussianDataset(PlaneDataset):
 		x2 = 0.5*torch.randn(self.num_points)
 		self.data = torch.stack((x1,x2)).t()
 
+class MixtureOfGaussian5Dataset(PlaneDataset):
+	def _create_data(self):
+		mus = 5*torch.tensor([[-1.0,-1.0],
+			[-1.0,1.0],[0.0,0.0],[1.0,1.0],[1.0,-1.0]])
+		indexs = np.random.choice(5,self.num_points)
+		self.data = mus[indexs] + torch.randn(self.num_points,2)
+
+class MixtureOfGaussian5highlowDataset(PlaneDataset):
+	def _create_data(self):
+		mus = 5*torch.tensor([[-1.0,-1.0],
+			[-1.0,1.0],[0.0,0.0],[1.0,1.0],[1.0,-1.0]])
+		sigmas = torch.tensor([1.0,1.0,2.0,1.0,1.0])
+		indexs = np.random.choice(5,self.num_points)
+		self.data = mus[indexs] + sigmas[indexs].unsqueeze(-1)*torch.randn(self.num_points,2)
+
 
 class CrescentDataset(PlaneDataset):
 
@@ -576,6 +591,47 @@ class Crescent():
 		data_loaders = [self.get_data_loader(split=split,batch_size=batch_size,shuffle=shuffle,
 			pin_memory=pin_memory,num_workers=num_workers) for split in self.splits]
 		return data_loaders
+
+class MixtureOfGaussian5():
+
+	def __init__(self,train_samples=100,test_samples=100,train_data_path=None, test_data_path=None):
+
+		self.train = MixtureOfGaussian5Dataset(num_points=train_samples,flip_axes=False,data_path=train_data_path)
+		self.test = MixtureOfGaussian5Dataset(num_points=test_samples,flip_axes=False,data_path=test_data_path)
+		self.splits = ['train','test']
+
+	@property
+	def num_splits(self):
+		return len(self.splits)
+
+	def get_data_loader(self,split, batch_size, shuffle=True, pin_memory=True, num_workers=4):
+		return DataLoader(getattr(self,split),batch_size=batch_size, shuffle=shuffle,pin_memory=pin_memory,num_workers=num_workers)
+
+	def get_data_loaders(self, batch_size, shuffle=True, pin_memory=True, num_workers=4):
+		data_loaders = [self.get_data_loader(split=split,batch_size=batch_size,shuffle=shuffle,
+			pin_memory=pin_memory,num_workers=num_workers) for split in self.splits]
+		return data_loaders
+
+class MixtureOfGaussian5highlow():
+
+	def __init__(self,train_samples=100,test_samples=100,train_data_path=None, test_data_path=None):
+
+		self.train = MixtureOfGaussian5highlowDataset(num_points=train_samples,flip_axes=False,data_path=train_data_path)
+		self.test = MixtureOfGaussian5highlowDataset(num_points=test_samples,flip_axes=False,data_path=test_data_path)
+		self.splits = ['train','test']
+
+	@property
+	def num_splits(self):
+		return len(self.splits)
+
+	def get_data_loader(self,split, batch_size, shuffle=True, pin_memory=True, num_workers=4):
+		return DataLoader(getattr(self,split),batch_size=batch_size, shuffle=shuffle,pin_memory=pin_memory,num_workers=num_workers)
+
+	def get_data_loaders(self, batch_size, shuffle=True, pin_memory=True, num_workers=4):
+		data_loaders = [self.get_data_loader(split=split,batch_size=batch_size,shuffle=shuffle,
+			pin_memory=pin_memory,num_workers=num_workers) for split in self.splits]
+		return data_loaders
+
 
 class CrescentCubed():
 
