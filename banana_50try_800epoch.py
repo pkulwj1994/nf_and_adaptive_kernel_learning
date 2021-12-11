@@ -604,10 +604,11 @@ else:
 ################# short version
 
 
-TRAIN_NAME = 'DIAGSST'
+TRAIN_NAME = 'ISM_01DIAGSST'
 # tries = [10,11,12,13,14,15,16,17,18,19]
 tries = [0]
-ALPHA = torch.tensor([1.0]).to(device)
+ALPHA = torch.tensor([0.1]).to(device)
+ft_e_model_path = None
 
 
 # TRAIN_NAME = 'ISM_TRAIN'
@@ -623,7 +624,7 @@ flow_model.load_state_dict(torch.load(os.path.join(asset_dir,'pretrained_banana_
 # flow_model.eval()
 
 DataSets = Crescent(train_samples=100000, test_samples=50000,train_data_path='./crescent_train.pt', test_data_path='./crescent_test.pt')
-train_loader, test_loader = DataSets.get_data_loaders(100000)
+train_loader, test_loader = DataSets.get_data_loaders(5000)
 
 
 current_tb_dir = os.path.join(tb_dir,time.strftime('%Y-%m-%d_%H:%M:%S',time.localtime(time.time())) + TRAIN_NAME)
@@ -660,7 +661,7 @@ for tryy in tries:
 
 
 	epoch = 0
-	optimizer = Adam(e_model.parameters(), lr=1e-3)
+	optimizer = Adam(e_model.parameters(), lr=5e-5)
 
 	for epoch in range(epoch,2001):
 
@@ -671,8 +672,8 @@ for tryy in tries:
 		# 	pass 
 
 		# if epoch == 900:
-		# 	for param_group in optimizer.param_groups:
-		# 		param_group['lr'] = 5e-5
+			# for param_group in optimizer.param_groups:
+			# 	param_group['lr'] = 5e-5
 		# else:
 		# 	pass 
 
@@ -755,7 +756,7 @@ for tryy in tries:
 
 		for i,x in enumerate(train_loader):
 			l += calc_ism_loss_fast(x).detach().cpu().item()
-			ll_diagsst += calc_idsm_loss_id_diagsst_fast(x).detach().cpu().item()
+			ll_diagsst += (calc_ism_loss_fast(x) + ALPHA*calc_idsm_loss_diagsst_fast(x)).detach().cpu().item()
 			# ll_diagsst_diaghess += calc_idsm_loss_diagsst_diaghess(x).detach().cpu().item()
 			# ll_sst += calc_idsm_loss_sst(x).detach().cpu().item()
 			# ll_sst_hess += calc_idsm_loss_sst_hess(x).detach().cpu().item()
@@ -820,7 +821,7 @@ for tryy in tries:
 			lll = 0.0
 			for i,x in enumerate(test_loader):
 				l += calc_ism_loss_fast(x).detach().cpu().item()
-				ll_diagsst += calc_idsm_loss_id_diagsst_fast(x).detach().cpu().item()
+				ll_diagsst += (calc_ism_loss_fast(x) + ALPHA*calc_idsm_loss_diagsst_fast(x)).detach().cpu().item()
 				# ll_diagsst_diaghess += calc_idsm_loss_diagsst_diaghess(x).detach().cpu().item()
 				# ll_sst += calc_idsm_loss_sst(x).detach().cpu().item()
 				# ll_sst_hess += calc_idsm_loss_sst_hess(x).detach().cpu().item()
@@ -836,7 +837,7 @@ for tryy in tries:
 				# ll += 0
 				# lll+= 0
 			ism_eval_loss['ism'].append(l/(i+1))
-			idsm_eval_loss['diagsst'].append(ll/(i+1))
+			idsm_eval_loss['diagsst'].append(ll_diagsst/(i+1))
 			# idsm_eval_loss['diagsst_diaghess'].append(ll/(i+1))
 			# idsm_eval_loss['sst'].append(ll/(i+1))
 			# idsm_eval_loss['sst_hess'].append(ll/(i+1))
