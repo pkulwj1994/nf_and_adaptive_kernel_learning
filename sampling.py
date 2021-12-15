@@ -188,6 +188,36 @@ def estimate_norm_constant_sampling(energy_fun,est_rounds=100):
 	return nc_ests
 
 
+def fast_banana_sampling(num_points):
+	x1 = torch.randn(num_points)
+	x2_mean = 0.5*x1**2 -1
+	x2_var = torch.exp(torch.Tensor([-2]))
+	x2 = x2_mean + x2_var ** 0.5*torch.randn(num_points)
+	data = torch.stack((x1,x2)).t()
+	return data 
+
+
+
+
+def estimate_norm_constant_sampling_accurate(energy_fun,est_rounds=100):
+	with torch.no_grad():
+		nc_ests = torch.tensor([0.0]).to(device)
+		for i in tqdm(range(est_rounds)):
+			gs_sample = fast_banana_sampling(1000000).to(device)
+			mc_model_z = torch.exp(energy_fun(gs_sample).squeeze() - true_energy_func_gpu(gs_sample)).mean()*2.3114562546904662
+			nc_ests += mc_model_z.detach().cpu().data
+
+		nc_ests = nc_ests/est_rounds
+
+	del gs_sample
+	gc.collect()
+	torch.cuda.empty_cache()
+	return nc_ests
+
+
+
+
+
 def estimate_norm_constant_integral(energy_fun,L_BOX = -10,R_BOX = 10,KNOTS = 100000):
 
 	# L_BOX = -10

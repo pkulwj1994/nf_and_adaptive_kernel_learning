@@ -139,6 +139,19 @@ def calc_idsm_loss_id_diagsst_fast(x):
 	loss1 = (0.5*(grad1**2*(1+grad2)**2) + (torch.diagonal(hess1,dim1=-1,dim2=-2)*(1+grad2)**2)+grad1*torch.diagonal(hess2,dim1=-1,dim2=-2)*(1+grad2)).sum()
 
 	return loss1/x.shape[0]
+
+
+def calc_self_idsm_loss_diagsst_fast(x):
+	M = 5.0
+
+	grad1, hess1 = compute_model_score_and_hess(x)
+
+	
+	grad2 = torch.clamp(grad1,-M,M).detach()
+	hess2 = torch.clamp(hess1,-M,M).detach()
+
+	loss1 = (0.5*(grad1**2*(1+grad2)**2) + (torch.diagonal(hess1,dim1=-1,dim2=-2)*(1+grad2)**2)+grad1*torch.diagonal(hess2,dim1=-1,dim2=-2)*(1+grad2)).sum()
+	return loss1/x.shape[0]
 	
 
 
