@@ -78,7 +78,7 @@ def banana_prob_plot(train_name, epoch,model_nc, energy_nc):
 
 			ax.plot_surface(x_in[:,0].reshape(KNOTS,KNOTS).to('cpu').detach().numpy(),x_in[:,1].reshape(KNOTS,KNOTS).to('cpu').detach().numpy(),z.cpu().detach().numpy(),rstride=4,cstride=4,cmap=cm.Spectral)
 
-		ax.view_init(45, 45)
+		ax.view_init(15, 45)
 		d3_fig = fig.get_figure()
 		d3_fig.savefig(os.path.join(asset_dir,'./{}_banna_prob_3d_epoch_{}.png'.format(train_name, epoch)), dpi = 400)
 		# plt.show()
@@ -109,7 +109,7 @@ def banana_score_plot(train_name, epoch=0):
 
 	x_in = x_in.to(device).to(torch.float32)
 
-	z1,z2 = calc_flow_score(x_in).chunk(2,-1)
+	z1,z2 = calc_model_score(x_in).chunk(2,-1)
 	z1,z2 = z1.reshape(KNOTS,KNOTS),z2.reshape(KNOTS,KNOTS)
 
 	ax.quiver(x_in[:,0].reshape(KNOTS,KNOTS).to('cpu').detach().numpy(),x_in[:,1].reshape(KNOTS,KNOTS).to('cpu').detach().numpy(),z1.cpu().detach().numpy()-zz1.numpy(),z2.cpu().detach().numpy()-zz2.numpy())
@@ -145,7 +145,7 @@ def banana_score_norm_3D_plot(train_name, epoch=0):
 
 	x_in = x_in.to(device).to(torch.float32)
 
-	z1,z2 = calc_flow_score(x_in).chunk(2,-1)
+	z1,z2 = calc_model_score(x_in).chunk(2,-1)
 	z1,z2 = z1.reshape(KNOTS,KNOTS),z2.reshape(KNOTS,KNOTS)
 
 	score_norm = ((z1-zz1.to(device))**2 + (z2-zz2.to(device))**2).detach()

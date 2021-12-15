@@ -353,6 +353,13 @@ def calc_flow_score(x):
 	grad1 = grad(logp, x, create_graph=True)[0]
 	return grad1
 
+def calc_model_score(x):
+	x = x.to(device)
+	x.requires_grad_(True)
+	logp = e_model(x).sum()
+	grad1 = grad(logp, x, create_graph=True)[0]
+	return grad1
+
 def calc_true_score_cpu(x):
 
 	cnst_e = torch.exp(torch.tensor([1.]))
