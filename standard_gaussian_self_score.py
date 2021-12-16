@@ -30,7 +30,7 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 from os import mkdir
 from torch.utils import tensorboard
 tb_dir = os.path.join('./', "tensorboard")
-asset_dir = os.path.join('./','assets')
+asset_dir = os.path.join('./','gauss_assets')
 if os.path.exists(tb_dir):
 	pass
 else:
@@ -44,11 +44,11 @@ else:
 
 
 
-TRAIN_NAME = 'ISM_000_SELF_DIAGSST'
+TRAIN_NAME = 'Gauss_ISM_000_SELF_DIAGSST'
 # tries = [10,11,12,13,14,15,16,17,18,19]
 tries = [0]
-ALPHA = torch.tensor([0.00]).to(device)
-S2_CONST = torch.tensor([15.8844]).to(device)
+ALPHA = 0.00
+S2_CONST = 1/np.sqrt(2*np.pi)
 # ft_e_model_path = './assets/ISM_000_SELF_DIAGSST_banana_energy_model_try_0_epoch_350.pth'
 ft_e_model_path = None
 
@@ -64,7 +64,7 @@ flow_model = make_flow()
 flow_model.load_state_dict(torch.load(os.path.join(asset_dir,'pretrained_banana_flow.pth')))
 # flow_model.eval()
 
-DataSets = Crescent(train_samples=100000, test_samples=50000,train_data_path='./crescent_train.pt', test_data_path='./crescent_test.pt')
+DataSets = Gaussian(train_samples=100000, test_samples=50000,train_data_path='./crescent_train.pt', test_data_path='./crescent_test.pt')
 train_loader, test_loader = DataSets.get_data_loaders(5000)
 
 
@@ -142,13 +142,14 @@ for tryy in tries:
 		lll_sst_hess = 0.0
 		lll_sstinv = 0.0		
 
-		if epoch %10 ==0:
+		# if epoch %10 ==0:
 
-			banana_energy_plot(TRAIN_NAME,epoch)
-			banana_score_plot(TRAIN_NAME,epoch)
+		# 	banana_energy_plot(TRAIN_NAME,epoch)
+		# 	banana_prob_plot(TRAIN_NAME,epoch,mc_model_z.cpu(),mc_true_z.cpu())
+		# 	banana_score_norm_3D_plot(TRAIN_NAME,epoch)
 
 
-		if epoch %10 == 0:
+		if (epoch+1) %50 == 0:
 
 			# mc_model_z = print(estimate_norm_constant(lambda x: torch.exp(e_model(x)),1000))
 			# mc_flow_z = print(estimate_norm_constant(lambda x: torch.exp(flow_model.log_prob(x)),1000))
@@ -156,26 +157,28 @@ for tryy in tries:
 
 			# mc_model_z = estimate_norm_constant_integral(lambda x: torch.exp(e_model(x) - e_model(torch.tensor([[0.0,-1.0]]).to(device))),L_BOX = -10,R_BOX = 10,KNOTS = 2000)
 
-			mc_model_z = estimate_norm_constant_sampling(lambda x: e_model(x) - e_model(torch.tensor([[0.0,-1.0]]).to(device)),est_rounds=100)
+			# mc_model_z = estimate_norm_constant_sampling(lambda x: e_model(x) - e_model(torch.tensor([[0.0,-1.0]]).to(device)),est_rounds=20)
+			mc_model_z = estimate_norm_constant_sampling(lambda x: e_model(x) - e_model(torch.tensor([[0.0,0.0]]).to(device)),est_rounds=100)
+
 
 			# mc_flow_z = estimate_norm_constant_integral(lambda x: torch.exp(flow_model.log_prob(x)),L_BOX = -20,R_BOX = 20,KNOTS = 2000)
-			mc_flow_z = torch.tensor([1.0000]).to(device)
+			# mc_flow_z = torch.tensor([1.0000]).to(device)
 			# mc_true_z = estimate_norm_constant_integral(lambda x: torch.exp(true_energy_func_gpu(x)),L_BOX = -20,R_BOX = 20,KNOTS = 2000)
-			mc_true_z = torch.tensor([2.3114562546904662]).to(device)
+			mc_true_z = torch.tensor([1/np.sqrt(2*np.pi)])
 
-			flow_samples = flow_model.sample(1000).cpu()
+			# flow_samples = flow_model.sample(1000).cpu()
 			energy_samples = e_model_hmc_sample(1000,e_model,'model').detach().cpu()
 			# true_samples = DataSets.test.data[0:1000]
 
 			# model_kl = estimate_kl_integral(e_model = e_model, mc_model_z=mc_model_z,mc_true_z = mc_true_z)
 			# flow_kl = estimate_kl_integral(e_model = flow_model.log_prob, mc_model_z=mc_flow_z,mc_true_z = mc_true_z)
-			true_samples = e_model_hmc_sample(100000,e_model,'true').detach().cpu()
+			true_samples = fast_gauss_sampling(1000000).detach().cpu()
 
 			model_kl = estimate_kl_sampling(lambda x: e_model(x) - e_model(torch.tensor([[0.0,-1.0]]).to(device)), mc_model_z,mc_true_z, true_samples)
-			flow_kl = estimate_kl_sampling(flow_model.log_prob, mc_flow_z,mc_true_z,true_samples)
+			# flow_kl = estimate_kl_sampling(flow_model.log_prob, mc_flow_z,mc_true_z,true_samples)
 
 			print('{} model KL div to true model : {}'.format(TRAIN_NAME, model_kl.data))
-			print('flow model KL div to true model : {}'.format(flow_kl.data))
+			# print('flow model KL div to true model : {}'.format(flow_kl.data))
 			writer.add_scalar("flow_KL", round(float(flow_kl.cpu()),4), epoch)
 			writer.add_scalar("model_KL", round(float(model_kl.cpu()),4), epoch)
 
@@ -189,10 +192,15 @@ for tryy in tries:
 			# plt.scatter(flow_samples[:,0],flow_samples[:,1],s=1,label='flow model')
 			# plt.legend()
 			scatter_fig = fig.get_figure()
-			scatter_fig.savefig(os.path.join(asset_dir,'./banana_data_flow_and_energy_{}_try_{}_epoch_{}.png'.format(TRAIN_NAME,tryy,epoch)), dpi = 800)
+			scatter_fig.savefig(os.path.join(asset_dir,'./gauss_data_and_energy_{}_try_{}_epoch_{}.png'.format(TRAIN_NAME,tryy,epoch)), dpi = 800)
 			plt.close()
 
-			del true_samples,flow_samples, energy_samples
+			banana_energy_plot(TRAIN_NAME,epoch,mc_model_z.cpu(),mc_true_z.cpu())
+			banana_prob_plot(TRAIN_NAME,epoch,mc_model_z.cpu(),mc_true_z.cpu())
+			banana_score_norm_3D_plot(TRAIN_NAME,epoch)
+			banana_score_plot(TRAIN_NAME,epoch)
+
+			del true_samples, energy_samples
 			gc.collect()
 			torch.cuda.empty_cache()
 
@@ -372,3 +380,7 @@ for tryy in tries:
 	# np.save(os.path.join(asset_dir,'{}_tidsm_eval_losses_sst.npy'.format(TRAIN_NAME)),np.array(tidsm_eval_losses['sst']))
 	# np.save(os.path.join(asset_dir,'{}_tidsm_eval_losses_sst_hess.npy'.format(TRAIN_NAME)),np.array(tidsm_eval_losses['sst_hess']))
 	# np.save(os.path.join(asset_dir,'{}_tidsm_eval_losses_sstinv.npy'.format(TRAIN_NAME)),np.array(tidsm_eval_losses['sstinv']))
+
+
+
+

@@ -40,3 +40,27 @@ plt.savefig(os.path.join('./assets','mog5hl.png'), dpi = 400)
 
 
 
+
+DataSets = Gaussian(train_samples=100000, test_samples=50000)
+
+
+torch.save(DataSets.test.data,'./gauss_test.pt')
+torch.save(DataSets.train.data,'./gauss_train.pt')
+
+vecs = DataSets.test.data[0:2000]
+
+
+fig = plt.figure()
+plt.scatter(vecs[:,0],vecs[:,1],s=1,label='gauss')
+plt.legend()
+# scatter_fig = fig.get_figure()
+plt.savefig(os.path.join('./assets','gauss.png'), dpi = 400)
+
+
+
+
+
+
+
+
+

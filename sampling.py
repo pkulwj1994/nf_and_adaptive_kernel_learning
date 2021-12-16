@@ -182,7 +182,7 @@ def estimate_norm_constant_sampling(energy_fun,est_rounds=100):
 
 		nc_ests = nc_ests/est_rounds
 
-	del gs_sample
+	del gs_sample,mc_model_z
 	gc.collect()
 	torch.cuda.empty_cache()
 	return nc_ests
@@ -196,7 +196,8 @@ def fast_banana_sampling(num_points):
 	data = torch.stack((x1,x2)).t()
 	return data 
 
-
+def fast_gauss_sampling(num_points):
+	return torch.randn(num_points,2)
 
 
 def estimate_norm_constant_sampling_accurate(energy_fun,est_rounds=100):
@@ -204,16 +205,28 @@ def estimate_norm_constant_sampling_accurate(energy_fun,est_rounds=100):
 		nc_ests = torch.tensor([0.0]).to(device)
 		for i in tqdm(range(est_rounds)):
 			gs_sample = fast_banana_sampling(1000000).to(device)
-			mc_model_z = torch.exp(energy_fun(gs_sample).squeeze() - true_energy_func_gpu(gs_sample)).mean()*2.3114562546904662
+			mc_model_z = torch.exp(energy_fun(gs_sample).detach().squeeze() - true_energy_func_gpu(gs_sample).detach()).mean()*2.3114562546904662
 			nc_ests += mc_model_z.detach().cpu().data
 
 		nc_ests = nc_ests/est_rounds
 
-	del gs_sample
+	del gs_sample,mc_model_z
 	gc.collect()
 	torch.cuda.empty_cache()
 	return nc_ests
 
+
+def estimate_true_expectation(energy_fun, est_rounds):
+	with torch.no_grad():
+		nc_ests = torch.tensor([0.0]).to(device)
+		for i in tqdm(range(est_rounds)):
+			gs_sample = fast_banana_sampling(1000000).to(device)
+			nc_ests += torch.exp(energy_fun(gs_sample).detach().mean()).cpu().data
+
+	del gs_sample
+	gc.collect()
+	torch.cuda.empty_cache()
+	return nc_ests/est_rounds
 
 
 
@@ -282,6 +295,20 @@ def estimate_kl_sampling(energy_fun, mc_model_z,mc_true_z, true_samples):
 	gc.collect()
 	torch.cuda.empty_cache()
 	return kl_est
+
+def estimate_kl_sampling_gauss(energy_fun, mc_model_z,mc_true_z, true_samples):
+	with torch.no_grad():
+		
+		true_loglike = gauss_energy_func_gpu(true_samples.to(device))
+		model_loglike = (energy_fun(true_samples.to(device))).squeeze()
+
+		kl_est = (true_loglike - model_loglike).mean().cpu().numpy() + np.log(mc_model_z) - np.log(mc_true_z)
+
+	del true_loglike,model_loglike
+	gc.collect()
+	torch.cuda.empty_cache()
+	return kl_est
+
 
  # - energy_fun(torch.tensor([[0.0,-1.0]]).to(device))
 

@@ -365,7 +365,7 @@ class GaussianDataset(PlaneDataset):
 
 	def _create_data(self):
 		x1 = torch.randn(self.num_points)
-		x2 = 0.5*torch.randn(self.num_points)
+		x2 = torch.randn(self.num_points)
 		self.data = torch.stack((x1,x2)).t()
 
 class MixtureOfGaussian5Dataset(PlaneDataset):
@@ -554,10 +554,10 @@ class FaceDataset(PlaneDataset):
 
 class Gaussian():
 
-	def __init__(self,train_samples=100,test_samples=100):
+	def __init__(self,train_samples=100,test_samples=100,train_data_path=None, test_data_path=None):
 
-		self.train = GaussianDataset(num_points=train_samples)
-		self.test = GaussianDataset(num_points=test_samples)
+		self.train = GaussianDataset(num_points=train_samples,data_path=train_data_path)
+		self.test = GaussianDataset(num_points=test_samples,data_path=train_data_path)
 		self.splits = ['train','test']
 
 	@property

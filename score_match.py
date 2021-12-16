@@ -24,6 +24,7 @@ def compute_model_score_and_hess(x):
 	grad1 = grad(logp, x, create_graph=True)[0]
 
 	hess1 = torch.stack([grad(grad1[:, i].sum(),x, create_graph=True, retain_graph=True)[0] for i in range(x.shape[-1])] ,-1)
+	x.requires_grad_(False)
 	return grad1, hess1
 
 
@@ -177,6 +178,9 @@ def calc_idsm_loss_diagsst_diaghess(x):
 	grad222 = torch.stack([grad(grad22[:, i].sum(),x, create_graph=True, retain_graph=True)[0] for i in range(x.shape[-1])] ,-1)
 
 	loss3 = (grad1*torch.diagonal(grad222, dim1=-1,dim2=-2)).sum()
+
+	x.requires_grad_(False)
+
 
 
 	return (loss1+loss2+loss3)/x.shape[0]
@@ -351,6 +355,7 @@ def calc_flow_score(x):
 	x.requires_grad_(True)
 	logp = flow_model.log_prob(x).sum()
 	grad1 = grad(logp, x, create_graph=True)[0]
+	x.requires_grad_(False)
 	return grad1
 
 def calc_model_score(x):
@@ -358,11 +363,13 @@ def calc_model_score(x):
 	x.requires_grad_(True)
 	logp = e_model(x).sum()
 	grad1 = grad(logp, x, create_graph=True)[0]
+	x.requires_grad_(False)
 	return grad1
 
 def calc_true_score_cpu(x):
 
-	cnst_e = torch.exp(torch.tensor([1.]))
+	# cnst_e = torch.exp(torch.tensor([1.]))
+	cnst_e = np.e
 
 	grad1 = torch.stack([-0.5*cnst_e**2*x[:,0]**3 + cnst_e**2*x[:,1]*x[:,0] + (cnst_e**2 - 1)*x[:,0],
 		-cnst_e**2*x[:,1] + 0.5*cnst_e**2*x[:,0]**2 - cnst_e**2],-1)
@@ -371,16 +378,21 @@ def calc_true_score_cpu(x):
 
 
 def torch_e():
-	return torch.exp(torch.tensor([1.])).to(device)
+	return np.e
 
 
 
 def true_energy_func_cpu(x):
-	cnst_e = torch.exp(torch.tensor([1.]))
+	cnst_e = np.e
 
 	return -0.5*x[:,0]**2 - 0.5*cnst_e**2*(x[:,1]-0.5*x[:,0]**2 + 1)**2
 
 
+def gauss_energy_func_cpu(x):
+	return -0.5*torch.norm(x,2,dim=-1)
+
+def gauss_energy_func_gpu(x):
+	return -0.5*torch.norm(x,2,dim=-1)
 
 
 

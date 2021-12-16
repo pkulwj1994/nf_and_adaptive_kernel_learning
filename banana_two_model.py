@@ -47,8 +47,8 @@ else:
 TRAIN_NAME = 'ISM_000_SELF_DIAGSST'
 # tries = [10,11,12,13,14,15,16,17,18,19]
 tries = [0]
-ALPHA = torch.tensor([0.00]).to(device)
-S2_CONST = torch.tensor([15.8844]).to(device)
+ALPHA = 0.00
+S2_CONST = 4.9700
 # ft_e_model_path = './assets/ISM_000_SELF_DIAGSST_banana_energy_model_try_0_epoch_350.pth'
 ft_e_model_path = None
 
@@ -105,7 +105,7 @@ for tryy in tries:
 
 
 	epoch = 0
-	optimizer = Adam(e_model.parameters(), lr=1e-4)
+	optimizer = Adam(e_model.parameters(), lr=1e-3)
 
 	for epoch in range(epoch,2001):
 
@@ -149,7 +149,7 @@ for tryy in tries:
 		# 	banana_score_norm_3D_plot(TRAIN_NAME,epoch)
 
 
-		if epoch %10 == 0:
+		if (epoch+1) %50 == 0:
 
 			# mc_model_z = print(estimate_norm_constant(lambda x: torch.exp(e_model(x)),1000))
 			# mc_flow_z = print(estimate_norm_constant(lambda x: torch.exp(flow_model.log_prob(x)),1000))
@@ -157,8 +157,8 @@ for tryy in tries:
 
 			# mc_model_z = estimate_norm_constant_integral(lambda x: torch.exp(e_model(x) - e_model(torch.tensor([[0.0,-1.0]]).to(device))),L_BOX = -10,R_BOX = 10,KNOTS = 2000)
 
-			mc_model_z = estimate_norm_constant_sampling(lambda x: e_model(x) - e_model(torch.tensor([[0.0,-1.0]]).to(device)),est_rounds=20)
-			# mc_model_z = estimate_norm_constant_sampling_accurate(lambda x: e_model(x) - e_model(torch.tensor([[0.0,-1.0]]).to(device)),est_rounds=20)
+			# mc_model_z = estimate_norm_constant_sampling(lambda x: e_model(x) - e_model(torch.tensor([[0.0,-1.0]]).to(device)),est_rounds=20)
+			mc_model_z = estimate_norm_constant_sampling_accurate(lambda x: e_model(x) - e_model(torch.tensor([[0.0,-1.0]]).to(device)),est_rounds=100)
 
 
 			# mc_flow_z = estimate_norm_constant_integral(lambda x: torch.exp(flow_model.log_prob(x)),L_BOX = -20,R_BOX = 20,KNOTS = 2000)
@@ -172,7 +172,7 @@ for tryy in tries:
 
 			# model_kl = estimate_kl_integral(e_model = e_model, mc_model_z=mc_model_z,mc_true_z = mc_true_z)
 			# flow_kl = estimate_kl_integral(e_model = flow_model.log_prob, mc_model_z=mc_flow_z,mc_true_z = mc_true_z)
-			true_samples = fast_banana_sampling(100000).detach().cpu()
+			true_samples = fast_banana_sampling(1000000).detach().cpu()
 
 			model_kl = estimate_kl_sampling(lambda x: e_model(x) - e_model(torch.tensor([[0.0,-1.0]]).to(device)), mc_model_z,mc_true_z, true_samples)
 			flow_kl = estimate_kl_sampling(flow_model.log_prob, mc_flow_z,mc_true_z,true_samples)
@@ -198,7 +198,7 @@ for tryy in tries:
 			banana_energy_plot(TRAIN_NAME,epoch,mc_model_z.cpu(),mc_true_z.cpu())
 			banana_prob_plot(TRAIN_NAME,epoch,mc_model_z.cpu(),mc_true_z.cpu())
 			banana_score_norm_3D_plot(TRAIN_NAME,epoch)
-
+			banana_score_plot(TRAIN_NAME,epoch)
 
 			del true_samples, energy_samples
 			gc.collect()
